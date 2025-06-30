@@ -1,31 +1,61 @@
-FROM ros:melodic-ros-base
+# Base image: ROS Noetic desktop-full
+# This image includes:
+# - ROS core packages
+# - RViz for visualization
+# - Gazebo for simulation
+# - Other GUI tools and dependencies
+FROM osrf/ros:noetic-desktop-full
 
-RUN sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys F42ED6FBAB17C654
+# Configure shell and environment
+# - Use bash as the default shell for ROS compatibility
+# - Set ROS_DISTRO for package installations and setup scripts
+SHELL ["/bin/bash", "-c"]
+ENV ROS_DISTRO=noetic
 
-RUN sudo apt-get update && sudo apt-get install -y vim iputils-ping net-tools python-pip ros-melodic-robot-state-publisher ros-melodic-moveit ros-melodic-rosbridge-suite ros-melodic-joy ros-melodic-ros-control ros-melodic-ros-controllers ros-melodic-tf2-web-republisher dos2unix
+# Install required packages:
+# - git: For cloning repositories
+# - cmake: Build system required by catkin
+# - python3-catkin-tools: Modern build tool for ROS (replaces catkin_make)
+# - ros-*-libfranka: Core library for controlling Franka Emika robots
+# - ros-*-moveit: Motion planning framework
+# - ros-*-ros-control: Hardware interface controllers
+# - ros-*-ros-controllers: Standard robot controllers
+# - ros-*-boost-sml: State machine library required by franka_gazebo
+RUN apt-get update && apt-get install -y \
+    git \
+    cmake \
+    python3-catkin-tools \
+    ros-${ROS_DISTRO}-libfranka \
+    ros-${ROS_DISTRO}-moveit \
+    ros-${ROS_DISTRO}-ros-control \
+    ros-${ROS_DISTRO}-ros-controllers \
+    ros-${ROS_DISTRO}-boost-sml \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN sudo -H pip install rospkg jsonpickle
+# Create and set up the catkin workspace directory
+WORKDIR /catkin_ws
 
-ENV ROS_WORKSPACE=/catkin_ws
+# Set up the ROS workspace:
+# 1. Source the ROS environment
+# 2. Create the src directory
+# 3. Clone the Franka ROS stack (develop branch for latest features)
+# 4. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
+# 5. Build the workspace using catkin
+RUN . /opt/ros/noetic/setup.bash && \
+    mkdir -p src && \
+    git clone -b develop https://github.com/frankarobotics/franka_ros.git src/franka_ros && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys "libfranka boost_sml" && \
+    catkin build 
 
-# Copy each directory explicitly to avoid workspace cruft
-COPY ./ROS/src/moveit_msgs $ROS_WORKSPACE/src/moveit_msgs
-COPY ./ROS/src/niryo_moveit $ROS_WORKSPACE/src/niryo_moveit
-COPY ./ROS/src/niryo_one_ros $ROS_WORKSPACE/src/niryo_one_ros
-COPY ./ROS/src/niryo_one_urdf $ROS_WORKSPACE/src/niryo_one_urdf
-COPY ./ROS/src/ros_tcp_endpoint $ROS_WORKSPACE/src/ros_tcp_endpoint
+# Set up the container's entry point
+# 1. Copy the custom entrypoint script that sets up the ROS environment
+# 2. Make it executable
+COPY ./entrypoint.sh /catkin_ws/entrypoint.sh
+RUN chmod +x /catkin_ws/entrypoint.sh
 
-COPY ./docker/set-up-workspace /setup.sh
-COPY docker/tutorial /
-
-RUN /bin/bash -c "find $ROS_WORKSPACE -type f -print0 | xargs -0 dos2unix"
-
-RUN dos2unix /tutorial && dos2unix /setup.sh && chmod +x /setup.sh && /setup.sh && rm /setup.sh
-
-WORKDIR $ROS_WORKSPACE
-
-# making sure the file modes are executable
-RUN chmod +x src/niryo_moveit/scripts/*.py
-
-ENTRYPOINT ["/tutorial"]
-
+# Configure container startup:
+# - ENTRYPOINT: Use our custom script to ensure proper ROS environment setup
+# - CMD: Default to an interactive bash shell when no command is provided
+ENTRYPOINT ["/catkin_ws/entrypoint.sh"]
+CMD ["bash"]

@@ -3,9 +3,20 @@ A eye tracking project where the user can choose the target that the robot shoul
 
 ## Currently working on configuring franka panda for this task instead of the niryo
 
-## Franka Panda ROS 2 Dockerized Simulation
+## Docker Instructions
 
-This project provides a Dockerized environment for simulating the Franka Emika Panda robot with ROS 2 Humble and MoveIt 2. It is designed to work on Windows with Docker Desktop and WSL2.
+### ROS 1 Noetic (Franka Panda)
+
+To build the ROS 1 Noetic Docker image for Franka Panda:
+
+```bash
+cd ros1_docker
+docker build -t franka-ros-noetic .
+```
+
+### ROS 2 Humble (Franka Panda)
+
+This project also provides a Dockerized environment for simulating the Franka Emika Panda robot with ROS 2 Humble and MoveIt 2. It is designed to work on Windows with Docker Desktop and WSL2.
 
 ## Prerequisites
 
@@ -51,4 +62,4 @@ From the container's command prompt, run:
 ```bash
 ros2 launch franka_description visualize_franka.launch.py arm_id:=fp3
 ```
-You should now see the RViz2 window appear on your desktop, displaying the Franka Panda robot. 
+You should now see the RViz2 window appear on your desktop, displaying the Franka Panda robot.
