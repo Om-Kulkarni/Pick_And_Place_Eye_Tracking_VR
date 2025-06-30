@@ -41,10 +41,12 @@ WORKDIR /catkin_ws
 # 1. Source the ROS environment
 # 2. Create the src directory
 # 3. Copy the local Franka ROS package from ROS/src
-# 4. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
-# 5. Build the workspace using catkin
+# 4. Copy the panda_moveit_config package from ROS/src 
+# 5. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
+# 6. Build the workspace using catkin
 RUN mkdir -p src
-COPY ../ROS/src/franka_ros /catkin_ws/src/franka_ros
+COPY ./ROS/src/franka_ros /catkin_ws/src/franka_ros
+COPY ./ROS/src/panda_moveit_config /catkin_ws/src/panda_moveit_config
 RUN . /opt/ros/noetic/setup.bash && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys "libfranka boost_sml" && \
@@ -53,7 +55,7 @@ RUN . /opt/ros/noetic/setup.bash && \
 # Set up the container's entry point
 # 1. Copy the custom entrypoint script that sets up the ROS environment
 # 2. Make it executable
-COPY ./entrypoint.sh /catkin_ws/entrypoint.sh
+COPY ros1_docker/entrypoint.sh /catkin_ws/entrypoint.sh
 RUN chmod +x /catkin_ws/entrypoint.sh
 
 # Configure container startup:

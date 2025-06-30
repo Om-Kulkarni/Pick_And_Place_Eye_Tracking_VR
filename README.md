@@ -23,8 +23,8 @@ Pick_And_Place_Eye_Tracking_VR/
 
 2. **Build the Docker Image**
    ```bash
-   cd ros1_docker
-   docker build -t franka-ros-noetic .
+   # Build from the project root directory
+   docker build -t franka-ros-noetic -f ros1_docker/Dockerfile .
    ```
 
 3. **Start the Docker Container**
