@@ -27,6 +27,46 @@ Pick_And_Place_Eye_Tracking_VR/
    docker build -t franka-ros-noetic .
    ```
 
+3. **Start the Docker Container**
+   Start a detached container with GUI support:
+   ```powershell
+   docker run -d --name franka_container `
+                -it `
+                -v /run/desktop/mnt/host/wslg/.X11-unix:/tmp/.X11-unix `
+                -v /run/desktop/mnt/host/wslg:/mnt/wslg `
+                -e DISPLAY=:0 `
+                -e WAYLAND_DISPLAY=wayland-0 `
+                -e XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir `
+                -e PULSE_SERVER=/mnt/wslg/PulseServer `
+                franka-ros-noetic `
+                tail -f /dev/null
+   ```
+
+4. **Start ROS Core**
+   In a new terminal, execute:
+   ```bash
+   # Enter the container
+   docker exec -it franka_container /bin/bash
+
+   # Inside the container:
+   . devel/setup.bash
+   roscore
+   ```
+
+5. **Launch Robot Visualization**
+   In another new terminal:
+   ```bash
+   # Enter the container
+   docker exec -it franka_container /bin/bash
+
+   # Inside the container:
+   . devel/setup.bash
+   roslaunch franka_description display.launch
+   ```
+
+   Note: For connecting to a real robot, use `roslaunch franka_visualization franka_visualization.launch robot_ip:=<ROBOT_IP>` instead. 
+   If you see libfranka connection errors with the visualization, this is normal when no real robot is connected and can be ignored for pure visualization purposes.
+
 ### ROS 2 Humble (Franka Panda)
 
 This project also provides a Dockerized environment for simulating the Franka Emika Panda robot with ROS 2 Humble and MoveIt 2. It is designed to work on Windows with Docker Desktop and WSL2.
