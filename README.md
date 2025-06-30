@@ -53,7 +53,7 @@ Pick_And_Place_Eye_Tracking_VR/
    roscore
    ```
 
-5. **Launch Robot Visualization**
+5. **Launch Robot Visualization with MoveIt**
    In another new terminal:
    ```bash
    # Enter the container
@@ -61,11 +61,14 @@ Pick_And_Place_Eye_Tracking_VR/
 
    # Inside the container:
    . devel/setup.bash
-   roslaunch franka_description display.launch
+   roslaunch panda_moveit_config demo.launch
    ```
 
-   Note: For connecting to a real robot, use `roslaunch franka_visualization franka_visualization.launch robot_ip:=<ROBOT_IP>` instead. 
-   If you see libfranka connection errors with the visualization, this is normal when no real robot is connected and can be ignored for pure visualization purposes.
+   This will launch:
+   - RViz with MoveIt plugin
+   - Motion Planning capabilities
+   - Interactive markers for robot control
+   - Collision detection and path planning
 
 ### ROS 2 Humble (Franka Panda)
 
