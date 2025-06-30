@@ -3,16 +3,29 @@ A eye tracking project where the user can choose the target that the robot shoul
 
 ## Currently working on configuring franka panda for this task instead of the niryo
 
+## Project Structure
+
+```
+Pick_And_Place_Eye_Tracking_VR/
+├── ROS/
+│   └── src/
+│       └── franka_ros/        # Franka Panda ROS packages
+├── ros1_docker/              # ROS 1 Noetic Docker setup
+└── ros2_docker/              # ROS 2 Humble Docker setup
+```
+
 ## Docker Instructions
 
 ### ROS 1 Noetic (Franka Panda)
 
-To build the ROS 1 Noetic Docker image for Franka Panda:
+1. **Setup the Workspace**
+   First, ensure you have the Franka ROS package in your `ROS/src` directory. The Docker build will use this local copy instead of downloading from GitHub.
 
-```bash
-cd ros1_docker
-docker build -t franka-ros-noetic .
-```
+2. **Build the Docker Image**
+   ```bash
+   cd ros1_docker
+   docker build -t franka-ros-noetic .
+   ```
 
 ### ROS 2 Humble (Franka Panda)
 

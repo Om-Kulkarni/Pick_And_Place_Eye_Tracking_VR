@@ -38,12 +38,12 @@ WORKDIR /catkin_ws
 # Set up the ROS workspace:
 # 1. Source the ROS environment
 # 2. Create the src directory
-# 3. Clone the Franka ROS stack (develop branch for latest features)
+# 3. Copy the local Franka ROS package from ROS/src
 # 4. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
 # 5. Build the workspace using catkin
+RUN mkdir -p src
+COPY ../ROS/src/franka_ros /catkin_ws/src/franka_ros
 RUN . /opt/ros/noetic/setup.bash && \
-    mkdir -p src && \
-    git clone -b develop https://github.com/frankarobotics/franka_ros.git src/franka_ros && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys "libfranka boost_sml" && \
     catkin build 
