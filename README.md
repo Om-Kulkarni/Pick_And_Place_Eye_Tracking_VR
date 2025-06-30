@@ -70,6 +70,39 @@ Pick_And_Place_Eye_Tracking_VR/
    - Interactive markers for robot control
    - Collision detection and path planning
 
+6. **Gazebo Simulation and Gripper Control**
+   To test pick and place operations in Gazebo:
+
+   a. Launch Gazebo simulation with RViz:
+   ```bash
+   # Enter the container
+   docker exec -it franka_container /bin/bash
+
+   # Inside the container:
+   . devel/setup.bash
+   roslaunch franka_gazebo panda.launch x:=-0.5 \
+       world:=$(rospack find franka_gazebo)/world/stone.sdf \
+       controller:=cartesian_impedance_example_controller \
+       rviz:=true
+   ```
+
+   b. Control the gripper:
+   ```bash
+   # Open gripper (width: 0.08 meters, speed: 0.1 m/s)
+   rostopic pub --once /franka_gripper/move/goal franka_gripper/MoveActionGoal "goal: { width: 0.08, speed: 0.1 }"
+
+   # Grasp object (width: 0.03 meters, force: 5N)
+   rostopic pub --once /franka_gripper/grasp/goal \
+       franka_gripper/GraspActionGoal \
+       "goal: { width: 0.03, epsilon:{ inner: 0.005, outer: 0.005 }, speed: 0.1, force: 5.0}"
+   ```
+
+   The grasp command parameters:
+   - `width`: Target width (meters)
+   - `epsilon`: Tolerances for grasp width
+   - `speed`: Closing speed (m/s)
+   - `force`: Grasping force (Newtons)
+
 ### ROS 2 Humble (Franka Panda)
 
 This project also provides a Dockerized environment for simulating the Franka Emika Panda robot with ROS 2 Humble and MoveIt 2. It is designed to work on Windows with Docker Desktop and WSL2.
