@@ -9,8 +9,10 @@ FROM osrf/ros:noetic-desktop-full
 # Configure shell and environment
 # - Use bash as the default shell for ROS compatibility
 # - Set ROS_DISTRO for package installations and setup scripts
+# - Disable the ROS 1 End-of-Life warning dialog
 SHELL ["/bin/bash", "-c"]
 ENV ROS_DISTRO=noetic
+ENV DISABLE_ROS1_EOL_WARNINGS=1
 
 # Install required packages:
 # - git: For cloning repositories
