@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using RosMessageTypes.Franka;
 using Unity.Robotics.ROSTCPConnector;
 using Unity.Robotics.UrdfImporter;
@@ -21,6 +22,9 @@ public class FrankaStatePublisher : MonoBehaviour
     [SerializeField]
     Transform m_EndEffector; // Reference to the end-effector transform
 
+    [SerializeField]
+    float m_PublishRate = 5.0f; // Publish every 5 seconds
+
     // Robot Joints
     UrdfJointRevolute[] m_JointArticulationBodies;
 
@@ -40,6 +44,19 @@ public class FrankaStatePublisher : MonoBehaviour
         {
             linkName += LinkNames[i];
             m_JointArticulationBodies[i] = m_FrankaRobot.transform.Find(linkName).GetComponent<UrdfJointRevolute>();
+        }
+
+        // Start the automatic publishing coroutine
+        StartCoroutine(PublishPeriodically());
+    }
+
+    // Coroutine to publish Franka state every m_PublishRate seconds
+    IEnumerator PublishPeriodically()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(m_PublishRate);
+            Publish();
         }
     }
 
