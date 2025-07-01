@@ -42,11 +42,13 @@ WORKDIR /catkin_ws
 # 2. Create the src directory
 # 3. Copy the local Franka ROS package from ROS/src
 # 4. Copy the panda_moveit_config package from ROS/src 
-# 5. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
-# 6. Build the workspace using catkin
+# 5. Copy the ros_tcp_endpoint package for Unity-ROS communication
+# 6. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
+# 7. Build the workspace using catkin
 RUN mkdir -p src
 COPY ./ROS/src/franka_ros /catkin_ws/src/franka_ros
 COPY ./ROS/src/panda_moveit_config /catkin_ws/src/panda_moveit_config
+COPY ./ROS/src/ros_tcp_endpoint /catkin_ws/src/ros_tcp_endpoint
 RUN . /opt/ros/noetic/setup.bash && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys "libfranka boost_sml" && \

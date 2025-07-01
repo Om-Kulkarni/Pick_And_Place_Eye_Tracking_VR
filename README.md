@@ -15,16 +15,59 @@ Pick_And_Place_Eye_Tracking_VR/
 ├── PickAndPlaceVR/           # Unity VR Project
 ├── ROS/
 │   └── src/
-│       └── franka_ros/       # Franka Panda ROS packages
+│       ├── franka_ros/       # Franka Panda ROS packages
+│       ├── panda_moveit_config/ # MoveIt configuration for Panda
+│       └── ros_tcp_endpoint/ # Unity-ROS communication bridge
 └── ros1_docker/              # ROS 1 Noetic Docker setup
 ```
+
+## Setup Instructions
+
+### Prerequisites
+- Docker Desktop with WSL2 backend
+- Git (for cloning repositories)
+- Windows 11 (for WSLg GUI support)
+
+### Clone Required ROS Packages
+
+Before building the Docker image, you need to clone the required ROS packages into your `ROS/src` directory:
+
+```bash
+# Navigate to the ROS source directory
+cd ROS/src/
+
+# Clone Franka ROS packages
+git clone git@github.com:frankarobotics/franka_ros.git
+
+# Clone Panda MoveIt configuration
+git clone git@github.com:moveit/panda_moveit_config.git
+
+# Clone Unity ROS TCP Endpoint for Unity-ROS communication
+git clone git@github.com:Unity-Technologies/ROS-TCP-Endpoint.git ros_tcp_endpoint
+```
+
+**Alternative (if SSH keys not configured):**
+If you don't have SSH keys set up with GitHub, use HTTPS URLs instead:
+```bash
+cd ROS/src/
+git clone https://github.com/frankarobotics/franka_ros.git
+git clone https://github.com/moveit/panda_moveit_config.git
+git clone https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git ros_tcp_endpoint
+```
+
+**Note**: The last clone command renames the repository from `ROS-TCP-Endpoint` to `ros_tcp_endpoint` to match ROS naming conventions.
 
 ## Docker Instructions
 
 ### ROS 1 Noetic (Franka Panda)
 
 1. **Setup the Workspace**
-   First, ensure you have the Franka ROS package in your `ROS/src` directory. The Docker build will use this local copy instead of downloading from GitHub.
+   Ensure you have cloned the required ROS packages (see "Clone Required ROS Packages" section above) into your `ROS/src` directory:
+   - `franka_ros/` - Franka Panda ROS packages
+   - `panda_moveit_config/` - MoveIt configuration for Panda
+   - `ros_tcp_endpoint/` - Unity-ROS communication bridge
+   
+   The Docker build will use these local copies.
 
 2. **Build the Docker Image**
    ```bash
