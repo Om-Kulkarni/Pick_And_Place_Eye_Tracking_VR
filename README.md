@@ -146,7 +146,16 @@ To use the Franka Panda robot in Unity, you need to generate a URDF file from th
    - Use Unity's URDF Importer to import the robot
    - The mesh files should be automatically located in `franka_description/meshes/`
 
-**Note**: The `franka_panda` folder is included in `.gitignore` since it contains generated files and large mesh assets that should be built locally.
+5. **Generate ROS Messages for Franka**
+   - In Unity, go to `Robotics -> Generate ROS Messages`
+   - Navigate to your ROS workspace: `ROS/src/franka_ros/franka_msgs/`
+   - Select the message types you need (typically):
+     - `FrankaState.msg` - For robot state information
+     - `Errors.msg` - For error handling
+     - Any other Franka-specific messages required for your application
+   - Click "Build" to generate the C# message classes in `Assets/RosMessages/`
+
+**Note**: Both the `franka_panda` folder and `RosMessages` folder are included in `.gitignore` since they contain generated files that should be built locally using Unity's tools.
 
 ### ROS 2 Humble (Franka Panda)
 
