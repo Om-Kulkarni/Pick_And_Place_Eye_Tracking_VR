@@ -103,6 +103,51 @@ Pick_And_Place_Eye_Tracking_VR/
    - `speed`: Closing speed (m/s)
    - `force`: Grasping force (Newtons)
 
+### Unity URDF Setup
+
+To use the Franka Panda robot in Unity, you need to generate a URDF file from the Xacro and copy the necessary mesh files:
+
+1. **Copy Franka Description Package**
+   First, copy the `franka_description` package from your ROS workspace to the Unity URDF folder:
+   ```bash
+   # Navigate to your Unity project
+   cd PickAndPlaceVR/Assets/URDF/franka_panda/
+   
+   # Copy the franka_description package from ROS workspace
+   cp -r ../../../ROS/src/franka_ros/franka_description/ ./
+   ```
+
+2. **Generate URDF from Xacro in Docker Container**
+   Enter the Docker container and generate the URDF:
+   ```bash
+   # Enter the container
+   docker exec -it franka_container /bin/bash
+
+   # Inside the container, navigate to franka_description
+   cd /catkin_ws/src/franka_ros/franka_description/
+
+   # Generate the URDF file with Gazebo and hand enabled
+   rosrun xacro xacro robots/panda/panda.urdf.xacro gazebo:=true hand:=true > panda.urdf
+   ```
+
+3. **Copy URDF from Container to Unity**
+   From your host machine (outside the container), copy the generated URDF:
+   ```bash
+   # Copy the generated URDF from container to Unity project
+   docker cp franka_container:/catkin_ws/src/franka_ros/franka_description/panda.urdf ./PickAndPlaceVR/Assets/URDF/franka_panda/
+
+   # Ensure mesh paths are correct for Unity (should be relative paths like franka_description/meshes/...)
+   # The URDF should already have the correct paths after generation
+   ```
+
+4. **Import in Unity**
+   - Open Unity and navigate to `Assets/URDF/franka_panda/`
+   - Select the `panda.urdf` file
+   - Use Unity's URDF Importer to import the robot
+   - The mesh files should be automatically located in `franka_description/meshes/`
+
+**Note**: The `franka_panda` folder is included in `.gitignore` since it contains generated files and large mesh assets that should be built locally.
+
 ### ROS 2 Humble (Franka Panda)
 
 This project also provides a Dockerized environment for simulating the Franka Emika Panda robot with ROS 2 Humble and MoveIt 2. It is designed to work on Windows with Docker Desktop and WSL2.
