@@ -115,10 +115,12 @@ If you need to manually fix these issues outside of Docker, you can:
    ```
 
 3. **Start the Docker Container**
-   Start a detached container with GUI support:
+   Start a detached container with GUI support and port forwarding:
    ```powershell
    docker run -d --name franka_container `
                 -it `
+                -p 10000:10000 `
+                -p 5005:5005 `
                 -v /run/desktop/mnt/host/wslg/.X11-unix:/tmp/.X11-unix `
                 -v /run/desktop/mnt/host/wslg:/mnt/wslg `
                 -e DISPLAY=:0 `
@@ -129,16 +131,22 @@ If you need to manually fix these issues outside of Docker, you can:
                 tail -f /dev/null
    ```
 
-4. **Start ROS Core**
-   In a new terminal, execute:
+   **Port forwarding explained:**
+   - `-p 10000:10000`: Unity-ROS TCP communication port
+   - `-p 5005:5005`: Additional communication/debugging port
+
+4. **Start ROS TCP Endpoint (Unity-ROS Communication Bridge)**
+   In a new terminal, launch the TCP endpoint that handles communication between ROS and Unity:
    ```bash
    # Enter the container
    docker exec -it franka_container /bin/bash
 
    # Inside the container:
    . devel/setup.bash
-   roscore
+   roslaunch ros_tcp_endpoint endpoint.launch
    ```
+
+   This will start the ROS TCP endpoint server on port 10000, allowing Unity to communicate with ROS nodes. The `roslaunch` command will automatically start `roscore` if it's not already running.
 
 5. **Launch Robot Visualization with MoveIt**
    In another new terminal:
