@@ -23,6 +23,7 @@ ENV DISABLE_ROS1_EOL_WARNINGS=1
 # - ros-*-ros-control: Hardware interface controllers
 # - ros-*-ros-controllers: Standard robot controllers
 # - ros-*-boost-sml: State machine library required by franka_gazebo
+# - dos2unix: Line ending conversion tool for cross-platform compatibility
 RUN apt-get update && apt-get install -y \
     git \
     cmake \
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install -y \
     ros-${ROS_DISTRO}-ros-control \
     ros-${ROS_DISTRO}-ros-controllers \
     ros-${ROS_DISTRO}-boost-sml \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and set up the catkin workspace directory
@@ -43,12 +45,18 @@ WORKDIR /catkin_ws
 # 3. Copy the local Franka ROS package from ROS/src
 # 4. Copy the panda_moveit_config package from ROS/src 
 # 5. Copy the ros_tcp_endpoint package for Unity-ROS communication
-# 6. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
-# 7. Build the workspace using catkin
+# 6. Fix line endings in ros_tcp_endpoint Python files (Windows -> Unix)
+# 7. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
+# 8. Build the workspace using catkin
 RUN mkdir -p src
 COPY ./ROS/src/franka_ros /catkin_ws/src/franka_ros
 COPY ./ROS/src/panda_moveit_config /catkin_ws/src/panda_moveit_config
 COPY ./ROS/src/ros_tcp_endpoint /catkin_ws/src/ros_tcp_endpoint
+
+# Fix line endings and Python shebangs for ros_tcp_endpoint to ensure cross-platform compatibility
+RUN find /catkin_ws/src/ros_tcp_endpoint -name "*.py" -type f -exec dos2unix {} \; && \
+    find /catkin_ws/src/ros_tcp_endpoint -name "*.py" -type f -exec sed -i '1s|^#!/usr/bin/env python$|#!/usr/bin/env python3|' {} \;
+
 RUN . /opt/ros/noetic/setup.bash && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --rosdistro ${ROS_DISTRO} --skip-keys "libfranka boost_sml" && \

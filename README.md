@@ -57,6 +57,45 @@ git clone https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git ros_tcp_end
 
 **Note**: The last clone command renames the repository from `ROS-TCP-Endpoint` to `ros_tcp_endpoint` to match ROS naming conventions.
 
+### Troubleshooting
+
+### Troubleshooting
+
+**Line Ending Issues (ros_tcp_endpoint):**
+The `ros_tcp_endpoint` package from GitHub may have Windows-style (CRLF) line endings and incorrect Python shebang lines that can cause errors like `/usr/bin/env: 'python\r': No such file or directory` or `/usr/bin/env: 'python': No such file or directory`. **This is now automatically handled by the Docker build process**, which converts all Python files to Unix-style (LF) line endings and updates shebang lines to use `python3` during the container build.
+
+If you need to manually fix these issues outside of Docker, you can:
+
+1. **Re-clone with proper line endings:**
+   ```bash
+   # Remove the problematic directory
+   rm -rf ROS/src/ros_tcp_endpoint
+   
+   # Configure Git to handle line endings
+   git config core.autocrlf input
+   
+   # Re-clone the repository
+   cd ROS/src/
+   git clone https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git ros_tcp_endpoint
+   ```
+
+2. **Or fix existing files:**
+   ```bash
+   # Convert line endings and fix shebang lines in Python files
+   find ROS/src/ros_tcp_endpoint -name "*.py" -exec dos2unix {} \;
+   find ROS/src/ros_tcp_endpoint -name "*.py" -exec sed -i '1s|^#!/usr/bin/env python$|#!/usr/bin/env python3|' {} \;
+   ```
+
+   **Note**: You may need to install `dos2unix` if it's not available:
+   ```bash
+   # On Ubuntu/Debian
+   apt-get update && apt-get install -y dos2unix
+   
+   # Then run the conversion
+   find ROS/src/ros_tcp_endpoint -name "*.py" -exec dos2unix {} \;
+   find ROS/src/ros_tcp_endpoint -name "*.py" -exec sed -i '1s|^#!/usr/bin/env python$|#!/usr/bin/env python3|' {} \;
+   ```
+
 ## Docker Instructions
 
 ### ROS 1 Noetic (Franka Panda)
