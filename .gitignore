@@ -9,6 +9,7 @@ PickAndPlaceVR/[Bb]uild/
 PickAndPlaceVR/[Bb]uilds/
 PickAndPlaceVR/[Ll]ogs/
 PickAndPlaceVR/[Mm]emoryCaptures/
+PickAndPlaceVR/[Uu]serSettings/
 
 # Ignore general Unity files within the project subfolder
 PickAndPlaceVR/[Aa]ssets/AssetStoreTools*
