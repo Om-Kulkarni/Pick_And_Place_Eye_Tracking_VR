@@ -47,6 +47,7 @@ PickAndPlaceVR/Assets/msgbrowser_settings.asset.meta
 ExportedObj/
 .consulo/
 .idea/
+PickAndPlaceVR/.vscode
 
 # Build files
 *.apk
