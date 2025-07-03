@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
+using Unity.Robotics.ROSTCPConnector.ROSGeometry;
 using Unity.Robotics.UrdfImporter;
 using RosMessageTypes.PandaMoveit;  // Updated to use PandaMoveit messages
 using RosMessageTypes.Geometry;
@@ -29,6 +30,7 @@ namespace Unity.Robotics.PickAndPlace
         string m_RosServiceName = "panda_moveit";
         public string RosServiceName { get => m_RosServiceName; set => m_RosServiceName = value; }
 
+        [SerializeField]
         [Tooltip("The GameObject representing the Panda robot")]
         GameObject m_PandaRobot;
         public GameObject PandaRobot { get => m_PandaRobot; set => m_PandaRobot = value; }
@@ -73,6 +75,13 @@ namespace Unity.Robotics.PickAndPlace
             m_Ros = ROSConnection.GetOrCreateInstance();
             m_Ros.RegisterRosService<PandaMoverServiceRequest, PandaMoverServiceResponse>(k_RosServiceName);
 
+            // Check if robot is assigned
+            if (m_PandaRobot == null)
+            {
+                Debug.LogError("PandaRobot GameObject is not assigned! Please assign it in the Inspector.");
+                return;
+            }
+
             // Initialize joint references
             m_JointArticulationBodies = new UrdfJointRevolute[k_NumRobotJoints];
             var linkName = string.Empty;
@@ -108,6 +117,8 @@ namespace Unity.Robotics.PickAndPlace
         /// </summary>
         public void ExecutePickAndPlace()
         {
+            Debug.Log("ExecutePickAndPlace() method called!");
+            
             if (m_IsExecutingTrajectory)
             {
                 Debug.LogWarning("Already executing trajectory, please wait");
@@ -120,6 +131,7 @@ namespace Unity.Robotics.PickAndPlace
                 return;
             }
 
+            Debug.Log("Starting pick and place coroutine...");
             StartCoroutine(ExecutePickAndPlaceCoroutine());
         }
 
@@ -511,5 +523,50 @@ namespace Unity.Robotics.PickAndPlace
         // Public methods for UI/testing
         public void SetTarget(GameObject target) => m_Target = target;
         public void SetTargetPlacement(GameObject target) => m_TargetPlacement = target;
+        
+        /// <summary>
+        ///     Test method to verify button connectivity
+        /// </summary>
+        public void TestButtonPress()
+        {
+            Debug.Log("TEST: Button press detected! PandaTrajectoryPlanner is responding.");
+            Debug.LogWarning("WARNING: This is a warning message to test console output.");
+            Debug.LogError("ERROR: This is an error message to test console output.");
+            print("PRINT: Using print() method for console output.");
+        }
+        
+        /// <summary>
+        ///     Static test method for button connectivity
+        /// </summary>
+        public static void StaticTestButtonPress()
+        {
+            Debug.Log("STATIC TEST: Static button press detected!");
+            Debug.LogWarning("STATIC WARNING: This is a static warning message.");
+        }
+        
+        /// <summary>
+        ///     Simple test method with minimal dependencies
+        /// </summary>
+        public void SimpleTest()
+        {
+            Debug.Log("SIMPLE TEST: Simple test method called at " + System.DateTime.Now);
+            UnityEngine.Debug.Log("UNITY DEBUG: Using full Unity namespace");
+        }
+        
+        /// <summary>
+        ///     Test method to check if all components are assigned
+        /// </summary>
+        public void TestSetup()
+        {
+            Debug.Log("=== PandaTrajectoryPlanner Setup Test ===");
+            Debug.Log($"PandaRobot assigned: {m_PandaRobot != null}");
+            Debug.Log($"Target assigned: {m_Target != null}");
+            Debug.Log($"TargetPlacement assigned: {m_TargetPlacement != null}");
+            Debug.Log($"ROS connected: {m_Ros != null}");
+            Debug.Log($"Joint bodies initialized: {m_JointArticulationBodies != null}");
+            Debug.Log($"Left gripper found: {m_LeftGripper != null}");
+            Debug.Log($"Right gripper found: {m_RightGripper != null}");
+            Debug.Log("=== End Setup Test ===");
+        }
     }
 }
