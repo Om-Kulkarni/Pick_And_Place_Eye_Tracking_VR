@@ -256,3 +256,87 @@ To use the Franka Panda robot in Unity, you need to generate a URDF file from th
    - Each developer needs to configure their own paths through Unity's Robotics tools
 
 **Note**: The `franka_panda` folder, `RosMessages` folder, and `msgbrowser_settings.asset` are included in `.gitignore` since they contain generated files and user-specific settings that should be built locally using Unity's tools.
+
+## Starting the Unity Simulation
+
+Once you have set up the ROS environment and Unity project, follow these steps to run the pick-and-place simulation:
+
+### Prerequisites
+- Unity scene is set up with the Franka Panda robot
+- Docker container is built and ready
+- Unity project has the PandaTrajectoryPlanner script configured
+
+### Step-by-Step Launch Process
+
+1. **Start the Docker Container**
+   ```powershell
+   # Start the container if not already running
+   docker run -d --name franka_container `
+                -it `
+                -p 10000:10000 `
+                -p 5005:5005 `
+                -v /run/desktop/mnt/host/wslg/.X11-unix:/tmp/.X11-unix `
+                -v /run/desktop/mnt/host/wslg:/mnt/wslg `
+                -e DISPLAY=:0 `
+                -e WAYLAND_DISPLAY=wayland-0 `
+                -e XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir `
+                -e PULSE_SERVER=/mnt/wslg/PulseServer `
+                franka-ros-noetic `
+                tail -f /dev/null
+   ```
+
+2. **Launch the Panda MoveIt Service**
+   Open a terminal and enter the Docker container:
+   ```bash
+   # Enter the container
+   docker exec -it franka_container /bin/bash
+
+   # Inside the container, launch the Panda MoveIt integration
+   . devel/setup.bash
+   roslaunch panda_moveit panda_unity_integration.launch
+   ```
+
+   This will start:
+   - ROS core
+   - MoveIt planning server for the Panda robot
+   - Unity-ROS TCP communication endpoint
+   - Panda trajectory planning service
+
+3. **Start Unity**
+   - Open the Unity project (`PickAndPlaceVR`)
+   - Load the main scene with the Panda robot setup
+   - Ensure the `PandaTrajectoryPlanner` script is attached to the appropriate GameObject
+   - Check that the robot, target, and placement objects are properly assigned in the Inspector
+
+4. **Connect and Execute Pick-and-Place**
+   - In Unity, press Play to start the simulation
+   - Look for the "Publish" button at the bottom of the Game view/screen
+   - Set up your target object and placement location in the scene
+   - Click the **"Publish" button** to execute the pick-and-place operation
+
+### What Happens When You Press "Publish"
+
+The "Publish" button triggers the `ExecutePickAndPlace()` method which:
+1. Checks if targets are properly set
+2. Calculates optimal pick and place poses based on object orientation
+3. Sends trajectory planning requests to the ROS MoveIt service
+4. Executes the planned trajectories point-by-point
+5. Controls the gripper to pick up and place the object
+
+### Troubleshooting
+
+**If the simulation doesn't start:**
+- Verify the Docker container is running: `docker ps`
+- Check ROS services are active: `docker exec -it franka_container rosnode list`
+- Ensure Unity can connect to ROS (check Unity Console for connection messages)
+
+**If pick-and-place fails:**
+- Check that target objects have appropriate physics properties (Rigidbody, reasonable mass)
+- Verify gripper positions in the Inspector (`GripperOpenPosition`, `GripperClosedPosition`)
+- Monitor the Unity Console for trajectory planning errors
+- Ensure objects are within the robot's workspace
+
+**Performance Tips:**
+- Adjust `SpeedFactor` in the PandaTrajectoryPlanner to control execution speed
+- Modify `PickOffsetHeight` and `GripperTcpOffset` for different object sizes
+- Check object physics materials for proper friction and collision properties
