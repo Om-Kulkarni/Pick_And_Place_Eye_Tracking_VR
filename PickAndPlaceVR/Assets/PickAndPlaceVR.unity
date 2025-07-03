@@ -449,7 +449,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &53607340
 Transform:
   m_ObjectHideFlags: 0
@@ -6172,7 +6172,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &443415540
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6393,7 +6393,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &460768742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7089,7 +7089,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &561358087
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7520,7 +7520,6 @@ MonoBehaviour:
   m_PlanningGroup: panda_manipulator
   m_GripperOpenPosition: 0.04
   m_GripperClosedPosition: 0.005
-  m_GripperForceLimit: 200
 --- !u!1001 &592112752
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8416,6 +8415,8 @@ MonoBehaviour:
     m_Bits: 1
   defaultVisualizerDistance: 0.5
   smoothingFactor: 0.2
+  visualizerSmoothingFactor: 0.15
+  eyeTrackingTimeoutSeconds: 2
 --- !u!120 &686459056
 LineRenderer:
   m_ObjectHideFlags: 0
@@ -8910,7 +8911,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &759010625
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9447,7 +9448,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 809980239}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23d3462c7751bb94680ce5ec14983435, type: 3}
   m_Name: 
@@ -9460,7 +9461,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 809980239}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ad34abafad169848a38072baa96cdb2, type: 3}
   m_Name: 
@@ -15453,7 +15454,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469635121}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 23d3462c7751bb94680ce5ec14983435, type: 3}
   m_Name: 
@@ -15466,7 +15467,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469635121}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0ad34abafad169848a38072baa96cdb2, type: 3}
   m_Name: 
@@ -17842,7 +17843,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1659604517}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ab68ce6587aab0146b8dabefbd806791, type: 3}
   m_Name: 
@@ -20637,13 +20638,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1902254956}
+  - component: {fileID: 1902254957}
   m_Layer: 0
   m_Name: GazeSelectionManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1902254956
 Transform:
   m_ObjectHideFlags: 0
@@ -20659,6 +20661,21 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 12
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1902254957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1902254954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b7bd9fb65847b54fb39f64a5b87edaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gazeInteractor: {fileID: 686459055}
+  pandaTrajectoryPlanner: {fileID: 591237298}
+  selectInputAction: {fileID: 187161793506945269, guid: c348712bda248c246b8c49b3db54643f, type: 3}
 --- !u!4 &1906468762 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1853446460809565476, guid: 390b85a1f90c14440b9c6bf868d147ff, type: 3}
@@ -21133,7 +21150,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!81 &1985937328
 AudioListener:
   m_ObjectHideFlags: 0
