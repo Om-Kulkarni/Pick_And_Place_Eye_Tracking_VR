@@ -983,7 +983,20 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 102782633}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 591237298}
+        m_TargetAssemblyTypeName: Unity.Robotics.PickAndPlace.PandaTrajectoryPlanner,
+          Unity.Robotics.PickAndPlace
+        m_MethodName: ExecutePickAndPlace
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &102782633
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7446,6 +7459,7 @@ GameObject:
   m_Component:
   - component: {fileID: 591237295}
   - component: {fileID: 591237297}
+  - component: {fileID: 591237298}
   m_Layer: 0
   m_Name: Publisher
   m_TagString: Untagged
@@ -7475,7 +7489,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 591237293}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1780abf2d125871429965888a3779b30, type: 3}
   m_Name: 
@@ -7483,6 +7497,25 @@ MonoBehaviour:
   m_TopicName: /franka_state
   m_FrankaRobot: {fileID: 9793566}
   m_EndEffector: {fileID: 1213304116}
+  m_PublishRate: 5
+--- !u!114 &591237298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 591237293}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84bff2c6856d33b489617ca6326b41c4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_RosServiceName: panda_moveit
+  m_PandaRobot: {fileID: 9793566}
+  m_Target: {fileID: 809980239}
+  m_TargetPlacement: {fileID: 1469635121}
+  m_SpeedFactor: 0.5
+  m_TrajectoryExecutionTime: 5
 --- !u!1001 &592112752
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20564,12 +20597,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b7bd9fb65847b54fb39f64a5b87edaa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gazeInteractor: {fileID: 686459055}
-  trajectoryPlanner: {fileID: 0}
-  selectInputAction: {fileID: 187161793506945269, guid: c348712bda248c246b8c49b3db54643f, type: 3}
-  currentState: 0
-  selectedSource: {fileID: 0}
-  selectedDestination: {fileID: 0}
 --- !u!4 &1902254956
 Transform:
   m_ObjectHideFlags: 0
