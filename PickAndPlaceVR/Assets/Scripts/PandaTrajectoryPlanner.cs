@@ -58,11 +58,19 @@ namespace Unity.Robotics.PickAndPlace
         string m_PlanningGroup = "panda_manipulator";
         public string PlanningGroup => m_PlanningGroup;
 
-        // Assures that the gripper is always positioned above the target before grasping
+        [SerializeField]
+        [Tooltip("Gripper open position (meters)")]
+        float m_GripperOpenPosition = 0.04f;
+
+        [SerializeField]
+        [Tooltip("Gripper closed position (meters)")]
+        float m_GripperClosedPosition = 0.0f;
+
+        // Calculated pick pose offset combining approach height and TCP clearance
         Vector3 m_PickPoseOffset => Vector3.up * (m_PickOffsetHeight + m_GripperTcpOffset);
         
-        // Hardcoded pick orientation to ensure gripper approaches from above
-        readonly Quaternion m_PickOrientation = Quaternion.Euler(180, 0, 0);
+        // Base gripper orientation for approaching from above
+        readonly Quaternion m_BaseGripperOrientation = Quaternion.Euler(180, 0, 0);
 
         // Robot joints
         UrdfJointRevolute[] m_JointArticulationBodies;
@@ -116,7 +124,7 @@ namespace Unity.Robotics.PickAndPlace
                 m_RightGripper = rightGripperTransform.GetComponent<ArticulationBody>();
 
             // Initialize gripper to open position
-            MoveGripper(0.04f, 0.04f);
+            MoveGripper(m_GripperOpenPosition, m_GripperOpenPosition);
 
             Debug.Log("PandaTrajectoryPlanner initialized successfully");
         }
@@ -159,20 +167,21 @@ namespace Unity.Robotics.PickAndPlace
             // Pick Pose (with offset)
             var pickPosition = m_Target.transform.position + m_PickPoseOffset;
             var pickPositionRelativeToRobot = pickPosition - m_PandaRobot.transform.position;
+            var pickOrientation = GetPickOrientation(m_Target.transform);
             var pickPose = new PoseMsg
             {
                 position = pickPositionRelativeToRobot.To<FLU>(),
-                orientation = m_PickOrientation.To<FLU>()
+                orientation = pickOrientation.To<FLU>()
             };
             request.pick_pose = pickPose;
             
-            // Place Pose (with offset)
+            // Place Pose (with offset) - use same orientation as pick for consistency
             var placePosition = m_TargetPlacement.transform.position + m_PickPoseOffset;
             var placePositionRelativeToRobot = placePosition - m_PandaRobot.transform.position;
             var placePose = new PoseMsg
             {
                 position = placePositionRelativeToRobot.To<FLU>(),
-                orientation = m_PickOrientation.To<FLU>()
+                orientation = pickOrientation.To<FLU>()
             };
             request.place_pose = placePose;
 
@@ -277,23 +286,18 @@ namespace Unity.Robotics.PickAndPlace
         {
             if (m_LeftGripper != null && m_RightGripper != null)
             {
-                var leftDrive = m_LeftGripper.xDrive;
-                var rightDrive = m_RightGripper.xDrive;
-
                 if (close)
                 {
-                    leftDrive.target = 0.0f;
-                    rightDrive.target = 0.0f;
+                    // Close gripper - use simple approach like Niryo
+                    MoveGripper(m_GripperClosedPosition, m_GripperClosedPosition);
                 }
                 else
                 {
-                    leftDrive.target = 0.04f;
-                    rightDrive.target = 0.04f;
+                    // Open gripper
+                    MoveGripper(m_GripperOpenPosition, m_GripperOpenPosition);
                 }
-
-                m_LeftGripper.xDrive = leftDrive;
-                m_RightGripper.xDrive = rightDrive;
-
+                
+                // Use Niryo's timing approach
                 yield return new WaitForSeconds(0.5f);
             }
             else
@@ -408,14 +412,14 @@ namespace Unity.Robotics.PickAndPlace
                 m_Target.transform.SetParent(null);
             }
             // Open gripper when resetting
-            MoveGripper(0.04f, 0.04f);
+            MoveGripper(m_GripperOpenPosition, m_GripperOpenPosition);
         }
 
         /// <summary>
         ///     Move the Panda gripper to specified positions
         /// </summary>
-        /// <param name="leftTarget">Target position for left gripper (0.0 = closed, 0.04 = open)</param>
-        /// <param name="rightTarget">Target position for right gripper (0.0 = closed, 0.04 = open)</param>
+        /// <param name="leftTarget">Target position for left gripper</param>
+        /// <param name="rightTarget">Target position for right gripper</param>
         public void MoveGripper(float leftTarget, float rightTarget)
         {
             if (m_LeftGripper != null && m_RightGripper != null)
@@ -434,5 +438,27 @@ namespace Unity.Robotics.PickAndPlace
         // Public methods for UI
         public void SetTarget(GameObject target) => m_Target = target;
         public void SetTargetPlacement(GameObject target) => m_TargetPlacement = target;
+
+        /// <summary>
+        ///     Calculate pick orientation based on cube's orientation for optimal grip alignment
+        /// </summary>
+        /// <param name="targetTransform">The transform of the target object to pick</param>
+        /// <returns>Quaternion representing the optimal pick orientation</returns>
+        Quaternion GetPickOrientation(Transform targetTransform)
+        {
+            if (targetTransform == null)
+                return m_BaseGripperOrientation;
+
+            // Snap cube rotation to nearest 90-degree increment for consistent grip alignment
+            var cubeYRotation = targetTransform.rotation.eulerAngles.y;
+            var snappedYRotation = Mathf.Round(cubeYRotation / 90f) * 90f;
+
+            // Add 45° offset to align gripper fingers with cube faces
+            var gripperYaw = (snappedYRotation + 45f) % 360f;
+            
+            Debug.Log($"Cube Y: {cubeYRotation:F1}°, Snapped: {snappedYRotation:F1}°, Gripper Yaw: {gripperYaw:F1}°");
+            
+            return Quaternion.Euler(180, gripperYaw, 0);
+        }
     }
 }
