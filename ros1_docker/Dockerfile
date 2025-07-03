@@ -44,13 +44,15 @@ WORKDIR /catkin_ws
 # 2. Create the src directory
 # 3. Copy the local Franka ROS package from ROS/src
 # 4. Copy the panda_moveit_config package from ROS/src 
-# 5. Copy the ros_tcp_endpoint package for Unity-ROS communication
-# 6. Fix line endings in ros_tcp_endpoint Python files (Windows -> Unix)
-# 7. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
-# 8. Build the workspace using catkin
+# 5. Copy the panda_moveit package for Unity-ROS pick and place integration
+# 6. Copy the ros_tcp_endpoint package for Unity-ROS communication
+# 7. Fix line endings in ros_tcp_endpoint Python files (Windows -> Unix)
+# 8. Install dependencies using rosdep (skipping libfranka and boost_sml as they're installed above)
+# 9. Build the workspace using catkin
 RUN mkdir -p src
 COPY ./ROS/src/franka_ros /catkin_ws/src/franka_ros
 COPY ./ROS/src/panda_moveit_config /catkin_ws/src/panda_moveit_config
+COPY ./ROS/src/panda_moveit /catkin_ws/src/panda_moveit
 COPY ./ROS/src/ros_tcp_endpoint /catkin_ws/src/ros_tcp_endpoint
 
 # Fix line endings and Python shebangs for ros_tcp_endpoint to ensure cross-platform compatibility
