@@ -28,18 +28,13 @@ namespace Unity.Robotics.PickAndPlace
         [SerializeField]
         [Tooltip("The GameObject representing the Panda robot")]
         GameObject m_PandaRobot;
-
+        public GameObject PandaRobot { get => m_PandaRobot; set => m_PandaRobot = value; }
         [SerializeField]
-        [Tooltip("The pick pose target (where to pick up the object)")]
-        GameObject m_PickPoseTarget;
-
+        GameObject m_Target;
+        public GameObject Target { get => m_Target; set => m_Target = value; }
         [SerializeField]
-        [Tooltip("The place pose target (where to place the object)")]
-        GameObject m_PlacePoseTarget;
-
-        [SerializeField]
-        [Tooltip("The object to pick up")]
-        GameObject m_TargetObject;
+        GameObject m_TargetPlacement;
+        public GameObject TargetPlacement { get => m_TargetPlacement; set => m_TargetPlacement = value; }
 
         [SerializeField]
         [Tooltip("Speed factor for trajectory execution (0.1 = 10% speed)")]
@@ -51,6 +46,10 @@ namespace Unity.Robotics.PickAndPlace
 
         // Robot joints
         UrdfJointRevolute[] m_JointArticulationBodies;
+        
+        // Gripper ArticulationBodies (similar to Niryo)
+        ArticulationBody m_LeftGripper;
+        ArticulationBody m_RightGripper;
         
         // ROS connection
         ROSConnection m_Ros;
@@ -77,6 +76,24 @@ namespace Unity.Robotics.PickAndPlace
                 m_JointArticulationBodies[i] = m_PandaRobot.transform.Find(linkName).GetComponent<UrdfJointRevolute>();
             }
 
+            // Find Panda gripper fingers (similar to Niryo approach)
+            // Adjust these paths based on your Panda robot's gripper structure
+            var leftGripperPath = linkName + "/panda_link8/panda_hand/panda_leftfinger";
+            var rightGripperPath = linkName + "/panda_link8/panda_hand/panda_rightfinger";
+            
+            var leftGripperTransform = m_PandaRobot.transform.Find(leftGripperPath);
+            var rightGripperTransform = m_PandaRobot.transform.Find(rightGripperPath);
+            
+            if (leftGripperTransform != null)
+                m_LeftGripper = leftGripperTransform.GetComponent<ArticulationBody>();
+            if (rightGripperTransform != null)
+                m_RightGripper = rightGripperTransform.GetComponent<ArticulationBody>();
+                
+            if (m_LeftGripper == null || m_RightGripper == null)
+            {
+                Debug.LogWarning("Panda gripper ArticulationBodies not found. Please check gripper paths.");
+            }
+
             Debug.Log("PandaTrajectoryPlanner initialized successfully");
         }
 
@@ -91,7 +108,7 @@ namespace Unity.Robotics.PickAndPlace
                 return;
             }
 
-            if (m_PickPoseTarget == null || m_PlacePoseTarget == null)
+            if (m_Target == null || m_TargetPlacement == null)
             {
                 Debug.LogError("Pick and place targets must be set");
                 return;
@@ -113,8 +130,8 @@ namespace Unity.Robotics.PickAndPlace
             // Create service request
             var request = new PandaMoverServiceRequest();
             request.joints_input = GetCurrentJointState();
-            request.pick_pose = GetPoseMsg(m_PickPoseTarget.transform);
-            request.place_pose = GetPoseMsg(m_PlacePoseTarget.transform);
+            request.pick_pose = GetPoseMsg(m_Target.transform);
+            request.place_pose = GetPoseMsg(m_TargetPlacement.transform);
 
             // Send service request
             bool serviceCallComplete = false;
@@ -230,30 +247,62 @@ namespace Unity.Robotics.PickAndPlace
         }
 
         /// <summary>
-        ///     Handle gripper open/close actions
+        ///     Handle gripper open/close actions using ArticulationBody control (Niryo-style)
         /// </summary>
         /// <param name="close">True to close gripper, false to open</param>
         IEnumerator HandleGripperAction(bool close)
         {
-            if (close && m_TargetObject != null)
+            if (m_LeftGripper != null && m_RightGripper != null)
             {
-                // Attach object to gripper
-                var endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8");
-                if (endEffector != null)
-                {
-                    m_TargetObject.transform.SetParent(endEffector);
-                    m_TargetObject.transform.localPosition = Vector3.zero;
-                    Debug.Log("Object attached to gripper");
-                }
-            }
-            else if (!close && m_TargetObject != null)
-            {
-                // Detach object from gripper
-                m_TargetObject.transform.SetParent(null);
-                Debug.Log("Object detached from gripper");
-            }
+                // Real ArticulationBody gripper control (like Niryo)
+                var leftDrive = m_LeftGripper.xDrive;
+                var rightDrive = m_RightGripper.xDrive;
 
-            yield return new WaitForSeconds(0.5f); // Simulate gripper action time
+                if (close)
+                {
+                    // Close gripper - adjust values based on your Panda gripper configuration
+                    leftDrive.target = 0.0f;   // Adjust these values for Panda gripper
+                    rightDrive.target = 0.0f;  // Adjust these values for Panda gripper
+                    Debug.Log("Closing Panda gripper...");
+                }
+                else
+                {
+                    // Open gripper - adjust values based on your Panda gripper configuration
+                    leftDrive.target = 0.04f;  // Adjust these values for Panda gripper
+                    rightDrive.target = 0.04f; // Adjust these values for Panda gripper
+                    Debug.Log("Opening Panda gripper...");
+                }
+
+                m_LeftGripper.xDrive = leftDrive;
+                m_RightGripper.xDrive = rightDrive;
+
+                yield return new WaitForSeconds(0.5f); // Wait for gripper to move
+            }
+            else
+            {
+                // Fallback to simulated approach if gripper ArticulationBodies not found
+                Debug.LogWarning("Gripper ArticulationBodies not available, using simulated gripper");
+                
+                if (close && m_Target != null)
+                {
+                    // Attach object to gripper
+                    var endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8");
+                    if (endEffector != null)
+                    {
+                        m_Target.transform.SetParent(endEffector);
+                        m_Target.transform.localPosition = Vector3.zero;
+                        Debug.Log("Object attached to gripper (simulated)");
+                    }
+                }
+                else if (!close && m_Target != null)
+                {
+                    // Detach object from gripper
+                    m_Target.transform.SetParent(null);
+                    Debug.Log("Object detached from gripper (simulated)");
+                }
+
+                yield return new WaitForSeconds(0.5f);
+            }
         }
 
         /// <summary>
@@ -394,16 +443,57 @@ namespace Unity.Robotics.PickAndPlace
         public void ResetPickAndPlace()
         {
             m_IsPickAndPlaceComplete = false;
-            if (m_TargetObject != null)
+            if (m_Target != null)
             {
-                m_TargetObject.transform.SetParent(null);
+                m_Target.transform.SetParent(null);
             }
             Debug.Log("Pick and place state reset");
         }
 
+        /// <summary>
+        ///     Close the Panda gripper (similar to Niryo)
+        /// </summary>
+        public void CloseGripper()
+        {
+            if (m_LeftGripper != null && m_RightGripper != null)
+            {
+                var leftDrive = m_LeftGripper.xDrive;
+                var rightDrive = m_RightGripper.xDrive;
+
+                // Close gripper - both fingers move toward each other
+                leftDrive.target = 0.0f;   // Adjust for your Panda gripper
+                rightDrive.target = 0.0f;  // Adjust for your Panda gripper
+
+                m_LeftGripper.xDrive = leftDrive;
+                m_RightGripper.xDrive = rightDrive;
+                
+                Debug.Log("Panda gripper closed");
+            }
+        }
+
+        /// <summary>
+        ///     Open the Panda gripper (similar to Niryo)
+        /// </summary>
+        public void OpenGripper()
+        {
+            if (m_LeftGripper != null && m_RightGripper != null)
+            {
+                var leftDrive = m_LeftGripper.xDrive;
+                var rightDrive = m_RightGripper.xDrive;
+
+                // Open gripper - both fingers move away from each other
+                leftDrive.target = 0.04f;  // Adjust for your Panda gripper
+                rightDrive.target = 0.04f; // Adjust for your Panda gripper
+
+                m_LeftGripper.xDrive = leftDrive;
+                m_RightGripper.xDrive = rightDrive;
+                
+                Debug.Log("Panda gripper opened");
+            }
+        }
+
         // Public methods for UI/testing
-        public void SetPickTarget(GameObject target) => m_PickPoseTarget = target;
-        public void SetPlaceTarget(GameObject target) => m_PlacePoseTarget = target;
-        public void SetTargetObject(GameObject target) => m_TargetObject = target;
+        public void SetTarget(GameObject target) => m_Target = target;
+        public void SetTargetPlacement(GameObject target) => m_TargetPlacement = target;
     }
 }
