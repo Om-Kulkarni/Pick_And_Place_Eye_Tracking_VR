@@ -26,6 +26,9 @@ namespace Unity.Robotics.PickAndPlace
         };
 
         [SerializeField]
+        string m_RosServiceName = "panda_moveit";
+        public string RosServiceName { get => m_RosServiceName; set => m_RosServiceName = value; }
+
         [Tooltip("The GameObject representing the Panda robot")]
         GameObject m_PandaRobot;
         public GameObject PandaRobot { get => m_PandaRobot; set => m_PandaRobot = value; }
@@ -43,6 +46,9 @@ namespace Unity.Robotics.PickAndPlace
         [SerializeField]
         [Tooltip("Duration for each trajectory segment")]
         float m_TrajectoryExecutionTime = 5.0f;
+
+        // Assures that the gripper is always positioned above the target before grasping (like Niryo)
+        readonly Vector3 m_PickPoseOffset = Vector3.up * 0.1f;
 
         // Robot joints
         UrdfJointRevolute[] m_JointArticulationBodies;
@@ -130,8 +136,24 @@ namespace Unity.Robotics.PickAndPlace
             // Create service request
             var request = new PandaMoverServiceRequest();
             request.joints_input = GetCurrentJointState();
-            request.pick_pose = GetPoseMsg(m_Target.transform);
-            request.place_pose = GetPoseMsg(m_TargetPlacement.transform);
+            
+            // Pick Pose (with offset like Niryo)
+            var pickPosition = m_Target.transform.position + m_PickPoseOffset;
+            var pickPose = new PoseMsg
+            {
+                position = pickPosition.To<FLU>(),
+                orientation = m_Target.transform.rotation.To<FLU>()
+            };
+            request.pick_pose = pickPose;
+            
+            // Place Pose (with offset like Niryo)
+            var placePosition = m_TargetPlacement.transform.position + m_PickPoseOffset;
+            var placePose = new PoseMsg
+            {
+                position = placePosition.To<FLU>(),
+                orientation = m_TargetPlacement.transform.rotation.To<FLU>()
+            };
+            request.place_pose = placePose;
 
             // Send service request
             bool serviceCallComplete = false;
@@ -370,17 +392,11 @@ namespace Unity.Robotics.PickAndPlace
         {
             var pose = new PoseMsg();
             
-            // Position (Unity uses left-handed, ROS uses right-handed)
-            pose.position.x = transform.position.z;
-            pose.position.y = -transform.position.x;
-            pose.position.z = transform.position.y;
+            // Convert Unity position to ROS using FLU coordinate system
+            pose.position = transform.position.To<FLU>();
 
-            // Rotation (Convert Unity quaternion to ROS quaternion)
-            var unityQuat = transform.rotation;
-            pose.orientation.x = -unityQuat.z;
-            pose.orientation.y = unityQuat.x;
-            pose.orientation.z = -unityQuat.y;
-            pose.orientation.w = unityQuat.w;
+            // Convert Unity quaternion to ROS using FLU coordinate system
+            pose.orientation = transform.rotation.To<FLU>();
 
             return pose;
         }
