@@ -49,8 +49,20 @@ namespace Unity.Robotics.PickAndPlace
         [Tooltip("Duration for each trajectory segment")]
         float m_TrajectoryExecutionTime = 5.0f;
 
+        [SerializeField]
+        [Tooltip("Height above target for approach (in meters)")]
+        float m_PickOffsetHeight = 0.1f;
+
+        [SerializeField]
+        [Tooltip("MoveIt planning group to use for trajectory planning")]
+        string m_PlanningGroup = "panda_manipulator";
+        public string PlanningGroup => m_PlanningGroup;
+
         // Assures that the gripper is always positioned above the target before grasping (like Niryo)
-        readonly Vector3 m_PickPoseOffset = Vector3.up * 0.1f;
+        Vector3 m_PickPoseOffset => Vector3.up * m_PickOffsetHeight;
+        
+        // Hardcoded pick orientation to ensure gripper approaches from above (like Niryo's approach)
+        readonly Quaternion m_PickOrientation = Quaternion.Euler(180, 0, 0); // Gripper pointing down
 
         // Robot joints
         UrdfJointRevolute[] m_JointArticulationBodies;
@@ -150,20 +162,26 @@ namespace Unity.Robotics.PickAndPlace
             request.joints_input = GetCurrentJointState();
             
             // Pick Pose (with offset like Niryo)
+            // Convert Unity world positions to robot-relative positions
             var pickPosition = m_Target.transform.position + m_PickPoseOffset;
+            var pickPositionRelativeToRobot = pickPosition - m_PandaRobot.transform.position;
             var pickPose = new PoseMsg
             {
-                position = pickPosition.To<FLU>(),
-                orientation = m_Target.transform.rotation.To<FLU>()
+                position = pickPositionRelativeToRobot.To<FLU>(),
+                // Use hardcoded orientation to ensure gripper approaches from above (like Niryo)
+                orientation = m_PickOrientation.To<FLU>()
             };
             request.pick_pose = pickPose;
             
             // Place Pose (with offset like Niryo)
+            // Convert Unity world positions to robot-relative positions
             var placePosition = m_TargetPlacement.transform.position + m_PickPoseOffset;
+            var placePositionRelativeToRobot = placePosition - m_PandaRobot.transform.position;
             var placePose = new PoseMsg
             {
-                position = placePosition.To<FLU>(),
-                orientation = m_TargetPlacement.transform.rotation.To<FLU>()
+                position = placePositionRelativeToRobot.To<FLU>(),
+                // Use hardcoded orientation for consistent placement (like Niryo)
+                orientation = m_PickOrientation.To<FLU>()
             };
             request.place_pose = placePose;
 
@@ -198,42 +216,50 @@ namespace Unity.Robotics.PickAndPlace
         }
 
         /// <summary>
-        ///     Execute the trajectories returned by MoveIt
+        ///     Execute the trajectories returned by MoveIt (following Niryo pattern)
         /// </summary>
         /// <param name="response">PandaMoverServiceResponse containing trajectory plans</param>
         IEnumerator ExecuteTrajectories(PandaMoverServiceResponse response)
         {
-            // Execute each trajectory in sequence
-            // 1. Pre-grasp (move to above target)
-            // 2. Grasp (move down to target)
-            // 3. Pick up (move back up)
-            // 4. Place (move to placement location)
-
-            for (int trajectoryIndex = 0; trajectoryIndex < response.trajectories.Length; trajectoryIndex++)
+            if (response.trajectories != null)
             {
-                var trajectory = response.trajectories[trajectoryIndex];
-                
-                Debug.Log($"Executing trajectory {trajectoryIndex + 1}/{response.trajectories.Length}");
-
-                // Handle gripper actions
-                if (trajectoryIndex == 1) // After grasp trajectory
+                // For every trajectory plan returned (like Niryo)
+                for (var trajectoryIndex = 0; trajectoryIndex < response.trajectories.Length; trajectoryIndex++)
                 {
-                    Debug.Log("Closing gripper...");
-                    yield return StartCoroutine(HandleGripperAction(true));
-                }
-                else if (trajectoryIndex == 3) // After place trajectory
-                {
-                    Debug.Log("Opening gripper...");
-                    yield return StartCoroutine(HandleGripperAction(false));
+                    var trajectory = response.trajectories[trajectoryIndex];
+                    
+                    Debug.Log($"Executing trajectory {trajectoryIndex + 1}/{response.trajectories.Length}");
+
+                    // Execute the trajectory
+                    yield return StartCoroutine(ExecuteTrajectory(trajectory));
+                    
+                    // Close the gripper if completed executing the trajectory for the Grasp pose (like Niryo)
+                    if (trajectoryIndex == (int)Poses.Grasp)
+                    {
+                        Debug.Log("Closing gripper...");
+                        yield return StartCoroutine(HandleGripperAction(true));
+                    }
+                    
+                    // Wait for the robot to achieve the final pose from joint assignment (like Niryo)
+                    yield return new WaitForSeconds(0.5f / m_SpeedFactor);
                 }
 
-                // Execute the trajectory
-                yield return StartCoroutine(ExecuteTrajectory(trajectory));
+                // All trajectories have been executed, open the gripper to place the target cube (like Niryo)
+                Debug.Log("Opening gripper...");
+                yield return StartCoroutine(HandleGripperAction(false));
             }
+        }
+        
+        enum Poses
+        {
+            PreGrasp,
+            Grasp,
+            PickUp,
+            Place
         }
 
         /// <summary>
-        ///     Execute a single trajectory
+        ///     Execute a single trajectory (using Niryo-style approach)
         /// </summary>
         /// <param name="trajectory">The trajectory to execute</param>
         IEnumerator ExecuteTrajectory(RobotTrajectoryMsg trajectory)
@@ -245,41 +271,26 @@ namespace Unity.Robotics.PickAndPlace
             }
 
             var jointTrajectory = trajectory.joint_trajectory;
-            var totalDuration = m_TrajectoryExecutionTime / m_SpeedFactor; // Apply speed factor
-            var startTime = Time.time;
-
-            // Get start and end positions
-            var startPositions = GetCurrentJointPositions();
-            var endPositions = jointTrajectory.points[jointTrajectory.points.Length - 1].positions;
-
-            // Interpolate between start and end positions
-            while (Time.time - startTime < totalDuration)
+            
+            // Execute each trajectory point sequentially (like Niryo)
+            foreach (var trajectoryPoint in jointTrajectory.points)
             {
-                var progress = (Time.time - startTime) / totalDuration;
-                progress = Mathf.Clamp01(progress);
-
-                // Apply smooth interpolation
-                var smoothProgress = Mathf.SmoothStep(0, 1, progress);
-
-                // Set joint positions
-                for (int i = 0; i < k_NumRobotJoints && i < endPositions.Length; i++)
+                var jointPositions = trajectoryPoint.positions;
+                
+                // Set the joint values for every joint (convert radians to degrees for Unity)
+                for (var joint = 0; joint < k_NumRobotJoints && joint < jointPositions.Length; joint++)
                 {
-                    var targetAngle = Mathf.Lerp((float)startPositions[i], (float)endPositions[i], smoothProgress);
-                    SetJointPosition(i, targetAngle);
+                    var jointAngleDegrees = (float)jointPositions[joint] * Mathf.Rad2Deg;
+                    SetJointPosition(joint, jointAngleDegrees);
                 }
 
-                yield return null;
-            }
-
-            // Ensure final positions are set
-            for (int i = 0; i < k_NumRobotJoints && i < endPositions.Length; i++)
-            {
-                SetJointPosition(i, (float)endPositions[i]);
+                // Wait for robot to achieve pose for all joint assignments (like Niryo)
+                yield return new WaitForSeconds(0.1f / m_SpeedFactor); // Apply speed factor to wait time
             }
 
             Debug.Log("Trajectory execution completed");
         }
-
+        
         /// <summary>
         ///     Handle gripper open/close actions using ArticulationBody control (Niryo-style)
         /// </summary>
@@ -319,13 +330,17 @@ namespace Unity.Robotics.PickAndPlace
                 
                 if (close && m_Target != null)
                 {
-                    // Attach object to gripper
-                    var endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8");
+                    // Attach object to gripper at the TCP (Tool Center Point) of panda_manipulator
+                    var endEffector = GetEndEffectorTransform();
                     if (endEffector != null)
                     {
                         m_Target.transform.SetParent(endEffector);
                         m_Target.transform.localPosition = Vector3.zero;
-                        Debug.Log("Object attached to gripper (simulated)");
+                        Debug.Log("Object attached to end-effector (simulated)");
+                    }
+                    else
+                    {
+                        Debug.LogError("Could not find end-effector transform to attach object");
                     }
                 }
                 else if (!close && m_Target != null)
@@ -381,9 +396,9 @@ namespace Unity.Robotics.PickAndPlace
         }
 
         /// <summary>
-        ///     Set position for a specific joint
+        ///     Set position for a specific joint (Niryo-style approach)
         /// </summary>
-        void SetJointPosition(int jointIndex, float position)
+        void SetJointPosition(int jointIndex, float positionDegrees)
         {
             if (jointIndex < k_NumRobotJoints)
             {
@@ -391,21 +406,22 @@ namespace Unity.Robotics.PickAndPlace
                 if (articulationBody != null)
                 {
                     var xDrive = articulationBody.xDrive;
-                    xDrive.target = position * Mathf.Rad2Deg; // Convert radians to degrees for Unity
+                    xDrive.target = positionDegrees; // Already in degrees, no conversion needed
                     articulationBody.xDrive = xDrive;
                 }
             }
         }
 
         /// <summary>
-        ///     Convert Unity Transform to ROS Pose message
+        ///     Convert Unity Transform to ROS Pose message (relative to robot base)
         /// </summary>
         PoseMsg GetPoseMsg(Transform transform)
         {
             var pose = new PoseMsg();
             
-            // Convert Unity position to ROS using FLU coordinate system
-            pose.position = transform.position.To<FLU>();
+            // Convert Unity position to robot-relative position, then to ROS using FLU coordinate system
+            var relativePosition = transform.position - m_PandaRobot.transform.position;
+            pose.position = relativePosition.To<FLU>();
 
             // Convert Unity quaternion to ROS using FLU coordinate system
             pose.orientation = transform.rotation.To<FLU>();
@@ -520,6 +536,118 @@ namespace Unity.Robotics.PickAndPlace
             }
         }
 
+        /// <summary>
+        ///     Get the end-effector transform for the panda_manipulator group (includes gripper)
+        /// </summary>
+        Transform GetEndEffectorTransform()
+        {
+            // Try to find the TCP (Tool Center Point) of the panda_manipulator group
+            // According to SRDF: panda_manipulator group uses panda_hand_tcp as tip_link
+            var endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8/panda_hand/panda_hand_tcp");
+            
+            if (endEffector != null)
+            {
+                return endEffector;
+            }
+            
+            // Fallback to panda_hand if panda_hand_tcp not found
+            endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8/panda_hand");
+            
+            if (endEffector != null)
+            {
+                Debug.LogWarning("Using panda_hand as end-effector fallback. panda_hand_tcp not found.");
+                return endEffector;
+            }
+            
+            // Final fallback to panda_link8 (panda_arm group tip)
+            endEffector = m_PandaRobot.transform.Find("world/panda_link0/panda_link1/panda_link2/panda_link3/panda_link4/panda_link5/panda_link6/panda_link7/panda_link8");
+            
+            if (endEffector != null)
+            {
+                Debug.LogWarning("Using panda_link8 as end-effector fallback. Consider using panda_hand_tcp for proper TCP.");
+                return endEffector;
+            }
+            
+            Debug.LogError("Could not find end-effector transform for Panda robot");
+            return null;
+        }
+
+        /// <summary>
+        ///     Test method to verify end-effector transform
+        /// </summary>
+        public void TestEndEffector()
+        {
+            Debug.Log("=== END-EFFECTOR TEST ===");
+            
+            var endEffector = GetEndEffectorTransform();
+            if (endEffector != null)
+            {
+                Debug.Log($"End-effector found: {endEffector.name}");
+                Debug.Log($"End-effector path: {GetTransformPath(endEffector)}");
+                Debug.Log($"End-effector position: {endEffector.position}");
+                Debug.Log($"End-effector rotation: {endEffector.rotation.eulerAngles}");
+            }
+            else
+            {
+                Debug.LogError("No end-effector transform found!");
+            }
+            
+            Debug.Log("=== END END-EFFECTOR TEST ===");
+        }
+        
+        /// <summary>
+        ///     Helper method to get full transform path
+        /// </summary>
+        string GetTransformPath(Transform transform)
+        {
+            var path = transform.name;
+            var parent = transform.parent;
+            
+            while (parent != null && parent != m_PandaRobot.transform)
+            {
+                path = parent.name + "/" + path;
+                parent = parent.parent;
+            }
+            
+            return path;
+        }
+
+        /// <summary>
+        ///     Test method to verify MoveIt planning group configuration
+        /// </summary>
+        public void TestPlanningGroupConfiguration()
+        {
+            Debug.Log("=== PLANNING GROUP CONFIGURATION TEST ===");
+            Debug.Log($"Unity Planning Group: {m_PlanningGroup}");
+            Debug.Log($"Expected End-Effector for {m_PlanningGroup}: panda_hand_tcp");
+            
+            var endEffector = GetEndEffectorTransform();
+            if (endEffector != null)
+            {
+                Debug.Log($"Found End-Effector: {endEffector.name}");
+                Debug.Log($"Path: {GetTransformPath(endEffector)}");
+                
+                if (m_PlanningGroup == "panda_manipulator" && endEffector.name == "panda_hand_tcp")
+                {
+                    Debug.Log("✓ CONFIGURATION CORRECT: panda_manipulator group with panda_hand_tcp end-effector");
+                }
+                else if (m_PlanningGroup == "panda_arm" && endEffector.name == "panda_link8")
+                {
+                    Debug.Log("✓ CONFIGURATION CORRECT: panda_arm group with panda_link8 end-effector");
+                }
+                else
+                {
+                    Debug.LogWarning($"⚠ CONFIGURATION MISMATCH: {m_PlanningGroup} group but using {endEffector.name} end-effector");
+                }
+            }
+            else
+            {
+                Debug.LogError("❌ NO END-EFFECTOR FOUND");
+            }
+            
+            Debug.Log("=== END PLANNING GROUP CONFIGURATION TEST ===");
+        }
+
         // Public methods for UI/testing
         public void SetTarget(GameObject target) => m_Target = target;
         public void SetTargetPlacement(GameObject target) => m_TargetPlacement = target;
@@ -568,5 +696,42 @@ namespace Unity.Robotics.PickAndPlace
             Debug.Log($"Right gripper found: {m_RightGripper != null}");
             Debug.Log("=== End Setup Test ===");
         }
+        
+        /// <summary>
+        ///     Test method to visualize pick approach pose
+        /// </summary>
+        public void TestPickPose()
+        {
+            if (m_Target == null)
+            {
+                Debug.LogError("No target assigned for pick pose test");
+                return;
+            }
+            
+            Debug.Log("=== PICK POSE TEST ===");
+            
+            // Calculate pick position with offset
+            var pickPosition = m_Target.transform.position + m_PickPoseOffset;
+            var pickPositionRelativeToRobot = pickPosition - m_PandaRobot.transform.position;
+            
+            Debug.Log($"Target position: {m_Target.transform.position}");
+            Debug.Log($"Pick position (with {m_PickOffsetHeight}m offset): {pickPosition}");
+            Debug.Log($"Pick position relative to robot: {pickPositionRelativeToRobot}");
+            Debug.Log($"Pick orientation (Unity): {m_PickOrientation.eulerAngles}");
+            Debug.Log($"Pick orientation (ROS): {m_PickOrientation.To<FLU>()}");
+            
+            // Convert to ROS coordinates
+            var rosPosition = pickPositionRelativeToRobot.To<FLU>();
+            var rosOrientation = m_PickOrientation.To<FLU>();
+            
+            Debug.Log($"ROS Pick Position: ({rosPosition.x:F3}, {rosPosition.y:F3}, {rosPosition.z:F3})");
+            Debug.Log($"ROS Pick Orientation: ({rosOrientation.x:F3}, {rosOrientation.y:F3}, {rosOrientation.z:F3}, {rosOrientation.w:F3})");
+            Debug.Log("=== END PICK POSE TEST ===");
+        }
+        
+        // NOTE: End-effector reference based on MoveIt group selection:
+        // - panda_arm group: tip_link = panda_link8 (flange)
+        // - panda_manipulator group: tip_link = panda_hand_tcp (Tool Center Point)
+        // This code assumes panda_manipulator group usage for pick-and-place operations
     }
 }

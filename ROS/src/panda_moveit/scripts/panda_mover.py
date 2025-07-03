@@ -74,7 +74,7 @@ def plan_pick_and_place(req):
     """
     response = PandaMoverServiceResponse()
 
-    group_name = "panda_arm"  # MoveIt planning group for Panda arm
+    group_name = "panda_manipulator"  # MoveIt planning group for Panda manipulator (includes gripper)
     move_group = moveit_commander.MoveGroupCommander(group_name)
 
     current_robot_joint_configuration = req.joints_input.joints
