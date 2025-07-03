@@ -115,6 +115,9 @@ namespace Unity.Robotics.PickAndPlace
             if (rightGripperTransform != null)
                 m_RightGripper = rightGripperTransform.GetComponent<ArticulationBody>();
 
+            // Initialize gripper to open position
+            MoveGripper(0.04f, 0.04f);
+
             Debug.Log("PandaTrajectoryPlanner initialized successfully");
         }
 
@@ -145,6 +148,9 @@ namespace Unity.Robotics.PickAndPlace
         {
             m_IsExecutingTrajectory = true;
             m_IsPickAndPlaceComplete = false;
+
+            // Ensure gripper is open before starting
+            yield return StartCoroutine(HandleGripperAction(false));
 
             // Create service request
             var request = new PandaMoverServiceRequest();
@@ -401,38 +407,24 @@ namespace Unity.Robotics.PickAndPlace
             {
                 m_Target.transform.SetParent(null);
             }
+            // Open gripper when resetting
+            MoveGripper(0.04f, 0.04f);
         }
 
         /// <summary>
-        ///     Close the Panda gripper
+        ///     Move the Panda gripper to specified positions
         /// </summary>
-        public void CloseGripper()
+        /// <param name="leftTarget">Target position for left gripper (0.0 = closed, 0.04 = open)</param>
+        /// <param name="rightTarget">Target position for right gripper (0.0 = closed, 0.04 = open)</param>
+        public void MoveGripper(float leftTarget, float rightTarget)
         {
             if (m_LeftGripper != null && m_RightGripper != null)
             {
                 var leftDrive = m_LeftGripper.xDrive;
                 var rightDrive = m_RightGripper.xDrive;
 
-                leftDrive.target = 0.0f;
-                rightDrive.target = 0.0f;
-
-                m_LeftGripper.xDrive = leftDrive;
-                m_RightGripper.xDrive = rightDrive;
-            }
-        }
-
-        /// <summary>
-        ///     Open the Panda gripper
-        /// </summary>
-        public void OpenGripper()
-        {
-            if (m_LeftGripper != null && m_RightGripper != null)
-            {
-                var leftDrive = m_LeftGripper.xDrive;
-                var rightDrive = m_RightGripper.xDrive;
-
-                leftDrive.target = 0.04f;
-                rightDrive.target = 0.04f;
+                leftDrive.target = leftTarget;
+                rightDrive.target = rightTarget;
 
                 m_LeftGripper.xDrive = leftDrive;
                 m_RightGripper.xDrive = rightDrive;
