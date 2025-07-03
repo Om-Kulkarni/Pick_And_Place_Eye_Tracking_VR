@@ -7,5 +7,7 @@
         <param name="tcp_port" type="int" value="$(arg tcp_port)"/>
 	</node>
     <node name="panda_mover" pkg="panda_moveit" type="panda_mover.py" args="--wait" output="screen"/>
-    <include file="$(find panda_moveit)/launch/demo.launch" />
+
+    <!-- Use official Panda MoveIt configuration -->
+    <include file="$(find panda_moveit_config)/launch/demo.launch" />
 </launch>
